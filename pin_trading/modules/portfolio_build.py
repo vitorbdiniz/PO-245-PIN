@@ -1,24 +1,24 @@
 import datetime as dt
-
 import numpy as np
 import pandas as pd
 
 
-def portfolio_build(pin_model, eligible_stocks, pin_quantile=0.75, delta_quantile=0.8, weight_sum_limit=1,
+def build_portfolio(pin_model, eligible_stocks, pin_quantile=0.75, delta_quantile=0.8, weight_sum_limit=1,
                     leverage=True, fixed_income_weight=1):
     """
-        Constroi portfolios a partir dos PINs e das ações elegíveis. Se houver alavancagem, cria portfólio short.
-        Nos portfólios long e long only são selecionadas as ações pelos maiores PINs e maiores deltas.
-        Já o portfólio short  são selecionadas as ações pelos maiores PINs e menores deltas.
-        O portfólio long alavancado em uma taxa de `fixed_income_weight` aloca tal taxa na SELIC.
-    :param pin_model: resultados do modelo PIN executado previamente
-    :param eligible_stocks: dataframe binário com ações elegíveis
-    :param pin_quantile: Quantil utilizado como mínimo para seleção de ações por PIN
-    :param delta_quantile: Quantil utilizado como mínimo para seleção de ações por Delta (1-delta_quantile) será utilizado para o portfólio short.
-    :param weight_sum_limit: Peso total do portfolio.
-    :param leverage: flag de alavancagem.
-    :param fixed_income_weight: percentual alocado na SELIC, em caso de alavancagem
-    :return: dicionário contendo 2 sub-dicionários: um com pesos dos ativos selecionados e um com as PINs desses ativos.
+    Builds portfolios based on PINs and eligible stocks. If leverage is enabled, it creates a short portfolio.
+    For long and long-only portfolios, stocks are selected based on the highest PINs and deltas.
+    The short portfolio selects stocks based on the highest PINs and lowest deltas.
+    The leveraged long portfolio allocates a percentage of `fixed_income_weight` to the SELIC.
+    :param pin_model: Results from the previously executed PIN model.
+    :param eligible_stocks: Binary dataframe indicating eligible stocks.
+    :param pin_quantile: Quantile used as a minimum for stock selection based on PIN.
+    :param delta_quantile: Quantile used as a minimum for stock selection based on Delta.
+    (1 - delta_quantile) is used for the short portfolio.
+    :param weight_sum_limit: Total weight of the portfolio.
+    :param leverage: Leverage flag.
+    :param fixed_income_weight: Percentage allocated to SELIC in case of leverage.
+    :return: Dictionary containing 2 sub-dictionaries: one with weights of selected assets and one with their PINs.
     """
     dates = get_unique_dates(pin_model['period'])
     long_portfolio_pin = pd.DataFrame()
@@ -62,11 +62,11 @@ def portfolio_build(pin_model, eligible_stocks, pin_quantile=0.75, delta_quantil
 
 def get_pins(pin_model, eligible_stocks, date):
     """
-    Busca as PINs das ações elegíveis para uma determinada data
-    :param pin_model: resultados do modelo PIN executado previamente
-    :param eligible_stocks: dataframe binário com ações elegíveis
-    :param date: data de referência
-    :return: Dataframe de PINs e outros estimadores (como delta)
+    Retrieves the PINs of eligible stocks for a specific date.
+    :param pin_model: Results from the previously executed PIN model.
+    :param eligible_stocks: Binary dataframe indicating eligible stocks.
+    :param date: Reference date.
+    :return: Dataframe of PINs and other estimators (such as delta).
     """
     eligible_stocks_on_date = eligible_stocks.loc[date]
     stocks = eligible_stocks_on_date[eligible_stocks_on_date].index
@@ -77,10 +77,10 @@ def get_pins(pin_model, eligible_stocks, date):
 
 def get_pins_per_date(pin_model, date):
     """
-    Seleciona valor da PIN de referência para uma data
-    :param pin_model: resultados do modelo PIN executado previamente
-    :param date: data de referência
-    :return: Dataframe de PINs e outros estimadores (como delta)
+    Selects the value of the reference PIN for a date.
+    :param pin_model: Results from the previously executed PIN model.
+    :param date: Reference date.
+    :return: Dataframe of PINs and other estimators (such as delta).
     """
     date_found = False
     first_date = pin_model['period'].min()
@@ -96,10 +96,10 @@ def get_pins_per_date(pin_model, date):
 
 def select_asset_by_delta(pins, q):
     """
-    Seleciona ativos com deltas fora do intervalo [inferior, superior] definido pelos quantis q e 1-q
-    :param pins: resultados do modelo PIN para uma data específica
-    :param q: quantil
-    :return: ativos selecionados para portfolios long e short
+    Selects assets with deltas outside the [lower, upper] range defined by quantiles q and 1-q.
+    :param pins: Results from the PIN model for a specific date.
+    :param q: Quantile.
+    :return: Selected assets for long and short portfolios.
     """
     delta_inf = np.quantile(pins['delta'], q=1 - q)
     delta_sup = np.quantile(pins['delta'], q=q)
@@ -111,11 +111,10 @@ def select_asset_by_delta(pins, q):
 
 def select_asset_by_pin(pins, q):
     """
-
-    Seleciona ativos com PIN acima do definido pelo quantil q
-    :param pins: resultados do modelo PIN para uma data específica
-    :param q: quantil
-    :return: ativos selecionados
+    Selects assets with PIN above the threshold defined by quantile q.
+    :param pins: Results from the PIN model for a specific date.
+    :param q: Quantile.
+    :return: Selected assets.
     """
     lim = np.quantile(pins['pin'], q=q)
     result = pins[pins['pin'] > lim].copy()
@@ -124,9 +123,9 @@ def select_asset_by_pin(pins, q):
 
 def get_unique_dates(dates):
     """
-    Retira duplicatas da coleção
-    :param dates: coleção de datas
-    :return: lista de datas ordenadas e sem repetição
+    Removes duplicates from the collection.
+    :param dates: Collection of dates.
+    :return: List of sorted and unique dates.
     """
     unique_dates = list(set(dates))
     unique_dates.sort()
@@ -135,12 +134,12 @@ def get_unique_dates(dates):
 
 def get_portfolio_weights(portfolio, weight_sum_limit=1, leverage=True, fixed_income_weight=1):
     """
-    Calcula pesos para os Portfólios
-    :param portfolio: Dicionário de ações selecionadas
-    :param weight_sum_limit: Limite máximo de peso do portfólio sem alavancagem
-    :param leverage: Flag de alavancagem
-    :param fixed_income_weight: Peso alocado na SELIC
-    :return:
+    Calculates weights for portfolios.
+    :param portfolio: Dictionary of selected stocks.
+    :param weight_sum_limit: Maximum portfolio weight without leverage.
+    :param leverage: Leverage flag.
+    :param fixed_income_weight: Weight allocated to SELIC.
+    :return: Portfolio weights.
     """
     portfolio_weights = dict()
     port_per_period = portfolio.groupby('period')
@@ -155,11 +154,11 @@ def get_portfolio_weights(portfolio, weight_sum_limit=1, leverage=True, fixed_in
 
 def get_weights(portfolio, method='equal', weight_sum_limit=1):
     """
-    Calcula pesos para 1 única data. Atualmente, os pesos são distribuídos com o método igualitário.
-    :param portfolio: Ações selecionadas para o portfólio
-    :param method: Método de distribuição de pesos. Por enquanto, apenas igualitário.
-    :param weight_sum_limit: Peso máximo do portólio
-    :return:
+    Calculates weights for a single date. Currently, weights are distributed using the equal method.
+    :param portfolio: Selected stocks for the portfolio.
+    :param method: Weight distribution method. Currently, only equal.
+    :param weight_sum_limit: Maximum portfolio weight.
+    :return: Weights.
     """
     weights = dict()
     n = portfolio.shape[0]
