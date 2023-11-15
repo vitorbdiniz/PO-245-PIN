@@ -1,0 +1,4 @@
+scipy==1.9.3
+pandas==1.5.2
+numpy==1.23.5
+poetry==1.7.0
